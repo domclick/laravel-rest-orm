@@ -1,6 +1,6 @@
 {
     "name": "sberned/restorm",
-    "description": "RestApu ORM for Laravel 5",
+    "description": "RestApi ORM Module for Laravel 5",
     "keywords": ["CURL", "ORM", "REST", "laravel"],
     "license": "MIT",
     "autoload": {
