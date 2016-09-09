@@ -1,35 +1,82 @@
 <?php
 
-namespace Sberned\CurlORM;
+/**
+ * @author: Igor Shesteryakov <gatewayuo@gmail.com>
+ */
+
+namespace Sberned\RestORM;
 
 use anlutro\cURL\cURL;
 use stdClass;
 
+/**
+ * Class Builder
+ * @package Sberned\RestORM
+ */
 class Builder
 {
 
+    /**
+     * @var string
+     */
     protected $url;
 
+    /**
+     * @var string
+     */
     protected $link;
 
+    /**
+     * @var string
+     */
     protected $method;
 
+    /**
+     * @var bool
+     */
     protected $json = true;
 
+    /**
+     * @var array
+     */
     protected $data;
 
+    /**
+     * @var bool
+     */
     protected $basicAuth = false;
 
+    /**
+     * @var
+     */
     protected $authLogin;
+    /**
+     * @var
+     */
     protected $authPass;
 
+    /**
+     * @var
+     */
     protected $pagination;
 
+    /**
+     * @var
+     */
     protected $scopes;
 
+    /**
+     * @var string
+     */
     protected $className;
 
+    /**
+     * @var array
+     */
     protected $result = [];
+    /**
+     * @var array
+     */
     protected $fields = [];
 
     /**
@@ -51,6 +98,9 @@ class Builder
         $this->data = $data;
     }
 
+    /**
+     * @return mixed
+     */
     public function send()
     {
         $cli = new cURL();
@@ -63,7 +113,7 @@ class Builder
             $result = $cli->newRequest($this->method, $link, $this->data);
 
         }
-        if($this->isBasicAuth()) {
+        if($this->basicAuth) {
             $result->setUser($this->authLogin())->setPass($this->authPass());
         }
 
@@ -78,101 +128,26 @@ class Builder
         }
     }
 
-
-
-    public function orderBy($attribute, $order = 'ASC')
-    {
-        if ($order == 'ASC') {
-            $this->addToOrdering($attribute);
-        } else {
-            $this->addToOrdering(-$attribute);
-        }
-    }
-
-    public function groupBy($q, $w)
-    {
-
-    }
-
+    /**
+     * @param $per_page
+     * @param $page
+     */
     public function limit($per_page, $page)
     {
         $this->pagination = "per_page={$per_page}&page={$page}";
     }
 
-    public function setLimit($arr)
-    {
-        $this->pagination = "per_page={$arr['per_page']}&page={$arr['page']}";
-    }
-
     /**
-     * @param array $select
+     * @return string
      */
-    public function setSelect(array $select)
-    {
-        $this->fields = $select;
-    }
-
-
-    /**
-     * Get the hydrated models without eager loading.
-     *
-     * @param  array  $columns
-     * @return \Illuminate\Database\Eloquent\Model[]
-     */
-    public function getModels($columns = ['*'])
-    {
-        $results = $this->query->get($columns);
-
-        $connection = $this->model->getConnectionName();
-
-        return $this->model->hydrate($results, $connection)->all();
-    }
-
-    public function applyScopes()
-    {
-        if (! $this->scopes) {
-            return $this;
-        }
-
-        $builder = clone $this;
-
-        return $builder;
-    }
-    public function all()
-    {
-        $result = $this->send();
-
-        $url = $this->link;
-
-        return $result->$url;
-    }
-    /**
-     * @return mixed
-     */
-    public function getLink()
+    public function getLink(): string
     {
         return $this->link . "?" . $this->getFields() . $this->getIncludes()  . $this->getOrdering()  . $this->pagination . $this->getWhereis();
     }
 
     /**
-     * @param mixed $url
+     * @return string
      */
-    public function setLink($url)
-    {
-        $this->url = $url;
-    }
-
-    public function setOrderby($value)
-    {
-        $this->ordering[] = $value;
-    }
-
-    public function setWith(array $value)
-    {
-        $this->includes = $value;
-
-    }
-
     public function getOrdering() : string
     {
         $res = "";
@@ -192,6 +167,9 @@ class Builder
         return $res;
     }
 
+    /**
+     * @return string
+     */
     public function getFields() : string
     {
         $res ='';
@@ -211,6 +189,9 @@ class Builder
         return $res;
     }
 
+    /**
+     * @return string
+     */
     public function getIncludes() : string
     {
         $res = "";
@@ -229,23 +210,8 @@ class Builder
     }
 
     /**
-     * @return array
+     * @return string
      */
-    public function getWhere(): array
-    {
-        return $this->where;
-    }
-
-    /**
-     * @param array $where
-     */
-    public function setWhere(array $array)
-    {
-        foreach ($array as $key => $item) {
-            $this->where[] = ['key' => $item['column'], 'search' => $item['search'], 'operator' => $item['operator']];
-        }
-    }
-
     public function getWhereis(): string
     {
         $res = "";
@@ -264,118 +230,67 @@ class Builder
     }
 
     /**
-     * @return string
+     * @param $arr
      */
-    public function getMethod(): string
+    public function setLimit($arr)
     {
-        return $this->method;
+        $this->pagination = "per_page={$arr['per_page']}&page={$arr['page']}";
+    }
+
+
+    /**
+     * @param array $select
+     */
+    public function setSelect(array $select)
+    {
+        $this->fields = $select;
     }
 
     /**
-     * @param string $method
+     * @param $url
      */
-    public function setMethod(string $method)
+    public function setLink($url)
     {
-        $this->method = $method;
+        $this->url = $url;
     }
 
     /**
-     * @return boolean
+     * @param $value
      */
-    public function isJson(): bool
+    public function setOrderby($value)
     {
-        return $this->json;
+        $this->ordering[] = $value;
     }
 
     /**
-     * @param boolean $json
+     * @param array $value
      */
-    public function setJson(bool $json)
+    public function setWith(array $value)
     {
-        $this->json = $json;
+        $this->includes = $value;
+
     }
 
     /**
-     * @return array
+     * @param array $array
      */
-    public function getData(): array
+    public function setWhere(array $array)
     {
-        return $this->data;
+        foreach ($array as $key => $item) {
+            $this->where[] = ['key' => $item['column'], 'search' => $item['search'], 'operator' => $item['operator']];
+        }
     }
+
 
     /**
-     * @param array $data
+     * @param array $values
      */
-    public function setData(array $data)
-    {
-        $this->data = $data;
-    }
-
-    /**
-     * @return boolean
-     */
-    public function isBasicAuth(): bool
-    {
-        return $this->basicAuth;
-    }
-
-    /**
-     * @param boolean $basicAuth
-     */
-    public function setBasicAuth(bool $basicAuth)
-    {
-        $this->basicAuth = $basicAuth;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getAuthLogin()
-    {
-        return $this->authLogin;
-    }
-
-    /**
-     * @param mixed $authLogin
-     */
-    public function setAuthLogin($authLogin)
-    {
-        $this->authLogin = $authLogin;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getAuthPass()
-    {
-        return $this->authPass;
-    }
-
-    /**
-     * @param mixed $authPass
-     */
-    public function setAuthPass($authPass)
-    {
-        $this->authPass = $authPass;
-    }
-
-
     public function setValues(array $values)
     {
         foreach ($values as $key => $value) {
             $nameMethod = 'set' . $key;
             $this->$nameMethod($value);
         }
-    }
-    function convertToObject($array) {
-        $object = new stdClass();
-        foreach ($array as $key => $value) {
-            if (is_array($value)) {
-                $value = self::convertToObject($value);
-            }
-            $object->$key = $value;
-        }
-        return $object;
     }
 
 }

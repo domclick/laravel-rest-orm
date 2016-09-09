@@ -1,6 +1,9 @@
 <?php
+/**
+ * @author: Igor Shesteryakov <gatewayuo@gmail.com>
+ */
 
-namespace Sberned\CurlORM;
+namespace Sberned\RestORM;
 
 use anlutro\cURL\cURL;
 use Illuminate\Contracts\Support\Arrayable;
@@ -12,6 +15,10 @@ use LogicException;
 use stdClass;
 
 
+/**
+ * Class Model
+ * @package Sberned\RestORM
+ */
 abstract class Model
 {
     /**
@@ -20,39 +27,78 @@ abstract class Model
      * @var array
      */
     protected $attributes = [];
+    /**
+     * @var array
+     */
     protected $newAttributes = [];
 
+    /**
+     * @var
+     */
     public $url;
+    /**
+     * @var
+     */
     public $fields;
+    /**
+     * @var
+     */
     public $includes;
+    /**
+     * @var
+     */
     public $version;
+    /**
+     * @var
+     */
     public $host;
+    /**
+     * @var bool
+     */
     public $https = true;
+    /**
+     * @var bool
+     */
     public $json = true;
+    /**
+     * @var bool
+     */
     public $basicAuth = false;
-    public $loginCurl = 'api';
-    public $passCurl = 'pass';
-    private $select = [];
-    private $result = [];
-    private $where = [];
-    private $exist = false;
-
-    private $className = '';
-
-    protected static $_values = array();
-
-
+    /**
+     * @var string
+     */
+    public $loginCurl = '';
+    /**
+     * @var string
+     */
+    public $passCurl = '';
 
     /**
-     * Create a new Eloquent query builder instance.
-     *
-     * @param array|$attributes
+     * @var bool
      */
-    public function __construct(array $attributes = [])
+    private $exist = false;
+
+    /**
+     * @var string
+     */
+    private $className = '';
+
+    /**
+     * @var array
+     */
+    protected static $_values = array();
+
+    /**
+     * Model constructor.
+     */
+    public function __construct()
     {
         $this->setClassName();
     }
 
+    /**
+     * @return bool
+     */
     public function save()
     {
       if($this->exist) {
@@ -62,6 +108,9 @@ abstract class Model
       }
     }
 
+    /**
+     * @return bool
+     */
     private function updateThis()
     {
         if(!empty($this->newAttributes)) {
@@ -73,7 +122,7 @@ abstract class Model
 
             if(!empty($data)) {
                 foreach ($data as $key => $val) {
-                    $this->attributes = array_add($this->attributes, $key, $val);
+                    $this->setAttribute($key, $val);
                 }
                 return true;
             }
@@ -81,6 +130,9 @@ abstract class Model
         return false;
     }
 
+    /**
+     * @return bool
+     */
     private function insertThis()
     {
         if(!empty($this->attributes)) {
@@ -92,7 +144,7 @@ abstract class Model
 
             if(!empty($data)) {
                 foreach ($data as $key => $val) {
-                    $this->attributes = array_add($this->attributes, $key, $val);
+                    $this->setAttribute($key, $val);
                 }
                 return true;
             }
@@ -100,6 +152,10 @@ abstract class Model
         return false;
     }
 
+    /**
+     * @param array $columns
+     * @return stdClass
+     */
     public function first(array $columns = [])
     {
         if(!empty($columns)) {
@@ -113,6 +169,11 @@ abstract class Model
 
         return self::convertToObject(array_first($res->$className));
     }
+
+    /**
+     * @param array $columns
+     * @return stdClass
+     */
     public function get(array $columns = [])
     {
         if(!empty($columns)) {
@@ -127,6 +188,10 @@ abstract class Model
         return self::convertToObject($res->$className);
     }
 
+    /**
+     * @param array $columns
+     * @return stdClass
+     */
     public function all(array $columns = [])
     {
         if(!empty($columns)) {
@@ -141,6 +206,10 @@ abstract class Model
         return self::convertToObject($res->$className);
     }
 
+    /**
+     * @param int $id
+     * @return mixed
+     */
     public static function find(int $id)
     {
         if(!empty($columns)) {
@@ -164,6 +233,10 @@ abstract class Model
         return $class;
     }
 
+    /**
+     * @param array $select
+     * @return mixed
+     */
     public static function select(array $select)
     {
         self::$_values['Select'] = $select;
@@ -171,6 +244,13 @@ abstract class Model
         return self::getCallClass();
     }
 
+    /**
+     * @param $column
+     * @param null $operator
+     * @param null $value
+     * @param string $boolean
+     * @return mixed
+     */
     public function where($column, $operator = null, $value = null, $boolean = 'and')
     {
         switch ($operator) {
@@ -197,6 +277,11 @@ abstract class Model
         return self::getCallClass();
     }
 
+    /**
+     * @param int $per_page
+     * @param int $page
+     * @return mixed
+     */
     public static function limit($per_page = 15, $page = 1)
     {
         self::$_values['Limit'] = ['per_page' => $per_page, 'page' => $page];
@@ -205,6 +290,10 @@ abstract class Model
     }
 
 
+    /**
+     * @param $array
+     * @return mixed
+     */
     public static function with($array)
     {
         if(is_array($array)){
@@ -218,17 +307,65 @@ abstract class Model
         return self::getCallClass();
     }
 
+    /**
+     * @return string
+     */
+    public function getUrl()
+    {
+        $http = $this->https ? 'https://' : 'http://';
+
+        return $http . $this->host . '/' . ($this->version ? $this->version . '/' : '');
+
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getLink()
+    {
+        return $this->url;
+    }
+
+    /**
+     * @return string
+     */
+    public function getClassName()
+    {
+        return $this->className;
+    }
+
+
+    /**
+     * @return mixed
+     */
+    public static function getCallClass()
+    {
+        $cName = get_called_class();//Получем название класса
+        return new $cName();
+    }
+
+    /**
+     * @param array $query
+     */
     public static function setSelect(array $query)
     {
         self::$_values['Select'] = $query;
     }
 
+    /**
+     * @param $column
+     * @param $value
+     * @param $operator
+     */
     private static function setWhere($column, $value, $operator)
     {
         self::$_values['Where'][] = ['column' => $column, 'search' => $value, 'operator' => $operator];
 
     }
 
+    /**
+     * @return string
+     */
     public function setClassName()
     {
 
@@ -236,15 +373,29 @@ abstract class Model
         return $this->className = mb_strtolower(array_last($r));
     }
 
-    public static function className($th)
+    /**
+     * @param $key
+     * @param $value
+     */
+    public function setAttribute($key, $value)
     {
-        $r = explode("\\", $th);
-
-        return mb_strtolower(array_last($r));
+        $this->attributes[$key] = $value;
     }
 
+    /**
+     * @param $key
+     * @param $value
+     */
+    public function setNewAttribute($key, $value)
+    {
+        $this->newAttributes[$key] = $value;
+    }
 
-    function convertToObject($array) {
+    /**
+     * @param $array
+     * @return stdClass
+     */
+    public static function convertToObject($array) {
         $object = new stdClass();
         foreach ($array as $key => $value) {
             if (is_array($value)) {
@@ -254,6 +405,22 @@ abstract class Model
         }
         return $object;
     }
+
+    /**
+     * @param $th
+     * @return string
+     */
+    public static function className($th)
+    {
+        $r = explode("\\", $th);
+
+        return mb_strtolower(array_last($r));
+    }
+
+    /**
+     * @param $name
+     * @return mixed|null
+     */
     public function __get($name) {
         if(isset($this->attributes[$name])) {
             return $this->attributes[$name];
@@ -263,46 +430,14 @@ abstract class Model
 
     }
 
+    /**
+     * @param $key
+     * @param $value
+     */
     public function __set($key, $value)
     {
         $this->setAttribute($key, $value);
         $this->setNewAttribute($key, $value);
 
     }
-    public function getUrl()
-    {
-        $http = $this->https ? 'https://' : 'http://';
-
-        return $http . $this->host . '/' . ($this->version ? $this->version . '/' : '');
-
-    }
-
-    public function getLink()
-    {
-        return $this->url;
-    }
-
-    public function getClassName()
-    {
-        return $this->className;
-    }
-
-
-    public static function getCallClass()
-    {
-        $cName = get_called_class();//Получем название класса
-        return new $cName();
-    }
-
-    public function setAttribute($key, $value)
-    {
-        $this->attributes[$key] = $value;
-    }
-
-    public function setNewAttribute($key, $value)
-    {
-        $this->newAttributes[$key] = $value;
-    }
-
-
 }

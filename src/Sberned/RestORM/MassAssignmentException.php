@@ -1,15 +1,13 @@
 <?php
 
-namespace Sberned\CurlORM;
+namespace Sberned\RestORM;
 
 use RuntimeException;
 
 class MassAssignmentException extends RuntimeException
 {
     public $error;
-    /**
-     * Set the affected Eloquent model.
-     *
+    /***
      * @param  string   $error
      * @return $this
      */
@@ -23,7 +21,6 @@ class MassAssignmentException extends RuntimeException
     }
 
     /**
-     * Get the affected Eloquent model.
      *
      * @return string
      */
