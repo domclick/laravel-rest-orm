@@ -1,11 +1,11 @@
 {
-    "name": "sberned/curlorm",
-    "description": "CURL ORM for Laravel 5",
-    "keywords": ["CURL", "ORM", "laravel"],
+    "name": "sberned/restorm",
+    "description": "RestApu ORM for Laravel 5",
+    "keywords": ["CURL", "ORM", "REST", "laravel"],
     "license": "MIT",
     "autoload": {
         "psr-0": {
-            "Sberned\\CurlORM": "src/"
+            "Sberned\\RestORM": "src/"
         }
     },
     "require": {
