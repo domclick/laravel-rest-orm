@@ -107,7 +107,7 @@ class Builder
 
         $link = $this->url  . $this->getLink();
 
-        if ( $this->isJson() ) {
+        if ( $this->json ) {
             $result = $cli->newJsonRequest($this->method, $link, $this->data);
         } else {
             $result = $cli->newRequest($this->method, $link, $this->data);
@@ -119,7 +119,7 @@ class Builder
 
         $res = $result->send();
         if($res->statusCode < 400) {
-           $this->result = $this->convertToObject(json_decode($res->body));
+            $this->result = Model::convertToObject(json_decode($res->body));
             if($this->result->success) {
                 return $this->result->data;
             }
