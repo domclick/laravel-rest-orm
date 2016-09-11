@@ -167,7 +167,7 @@ abstract class Model
         $res = $newQuery->send();
         $className = $this->url;
 
-        return self::convertToObject(array_first($res->$className));
+        return empty($res->$className) ? null : self::convertToObject(array_first($res->$className));
     }
 
     /**
