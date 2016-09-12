@@ -8,6 +8,7 @@ namespace Sberned\RestORM;
 
 use anlutro\cURL\cURL;
 use stdClass;
+use Illuminate\Support\Facades\File;
 
 /**
  * Class Builder
@@ -105,7 +106,18 @@ class Builder
     {
         $cli = new cURL();
 
-        $link = $this->url  . $this->getLink();
+        $link = $this->url . $this->getLink();
+
+        if(\Config::get('app.debug')) {
+            File::append(app_path()."/log/RestORM" . date('Y-m-d') . ".log",
+                $link . "\n\n== == == == == == == == == == == == == \n\n");
+        }
+
+        if(\Config::get('app.debug')) {
+            File::append(app_path()."/log/RestORM" . date('Y-m-d') . ".log",
+                json_encode($this->data, JSON_UNESCAPED_UNICODE) .
+                "\n\n== == == == == == == == == == == == == \n\n");
+        }
 
         if ( $this->json ) {
             $result = $cli->newJsonRequest($this->method, $link, $this->data);
@@ -142,7 +154,8 @@ class Builder
      */
     public function getLink(): string
     {
-        return $this->link . "?" . $this->getFields() . $this->getIncludes()  . $this->getOrdering()  . $this->pagination . $this->getWhereis();
+        return $this->link . "?" . $this->getFields() . $this->getIncludes()  . $this->getOrdering()  . $this->pagination .
+            '&' . $this->getWhereis();
     }
 
     /**

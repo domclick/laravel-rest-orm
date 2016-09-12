@@ -161,13 +161,33 @@ abstract class Model
         if(!empty($columns)) {
             self::setSelect($columns);
         }
+
+        $class = self::getCallClass();
+        $className = $class->className;
+        $aliasList = $class->alias_list;
+
         $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'get', true, []);
         $newQuery->limit(1, 1);
         $newQuery->setValues(self::$_values);
         $res = $newQuery->send();
-        $className = $this->url;
 
-        return empty($res->$className) ? null : self::convertToObject(array_first($res->$className));
+        if (isset($res->$className)) {
+            $dataObj = $className;
+        } else {
+            $dataObj = $aliasList;
+        }
+
+        if (empty($res->$dataObj)) {
+            return null;
+            $data = array_first($res->$dataObj);
+            if(!empty($data)) {
+                foreach ($data as $key => $val) {
+                    $class->setAttribute($key, $val);
+                }
+            }
+            $class->exist = true;
+            return $class;
+        }
     }
 
     /**
@@ -248,14 +268,21 @@ abstract class Model
      * @param $column
      * @param null $operator
      * @param null $value
+     * @param false boolean $fulltext_search
      * @param string $boolean
      * @return mixed
      */
-    public function where($column, $operator = null, $value = null, $boolean = 'and')
+    public static function where($column, $operator = '=', $value = null, $fulltext_search = false,  $boolean = 'and')
     {
+        if ($fulltext_search) {
+            $prefix = '@';
+        } else {
+            $prefix = '';
+        }
+
         switch ($operator) {
-            case '==' || null:
-                self::setWhere($column, $value, '@');
+            case '==' || '=':
+                self::setWhere($column, $value, $prefix);
                 break;
             case '<>' || '!=':
 
@@ -398,7 +425,7 @@ abstract class Model
     public static function convertToObject($array) {
         $object = new stdClass();
         foreach ($array as $key => $value) {
-            if (is_array($value)) {
+            if (is_array($value) && !empty($value)) {
                 $value = self::convertToObject($value);
             }
             $object->$key = $value;
