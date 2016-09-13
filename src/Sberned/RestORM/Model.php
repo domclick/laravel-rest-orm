@@ -177,8 +177,7 @@ abstract class Model
             $dataObj = $aliasList;
         }
 
-        if (empty($res->$dataObj)) {
-            return null;
+        if (!empty($res->$dataObj)) {
             $data = array_first($res->$dataObj);
             if(!empty($data)) {
                 foreach ($data as $key => $val) {
@@ -187,6 +186,8 @@ abstract class Model
             }
             $class->exist = true;
             return $class;
+        } else {
+            return null;
         }
     }
 

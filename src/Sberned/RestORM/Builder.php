@@ -128,7 +128,7 @@ class Builder
         if($this->basicAuth) {
             $result->setUser($this->authLogin())->setPass($this->authPass());
         }
-
+        $result->setOption(CURLOPT_SSL_VERIFYPEER, false);
         $res = $result->send();
         if($res->statusCode < 400) {
             $this->result = Model::convertToObject(json_decode($res->body));
