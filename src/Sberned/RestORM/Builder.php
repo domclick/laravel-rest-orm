@@ -233,7 +233,7 @@ class Builder
                 $res .= $field['key'] . "={$field['operator']}{$field['search']}";
 
                 if (isset($this->where[$key + 1])) {
-                    $res .= ',';
+                    $res .= '&';
                 }
             }
             $res .= '&';
