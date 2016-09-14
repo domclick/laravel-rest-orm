@@ -240,7 +240,12 @@ abstract class Model
 
         $newQuery = new Builder($class->getClassName(), $class->getUrl(), $class->getLink() . '/' . $id, 'get', true, []);
         $newQuery->setValues(self::$_values);
-        $res = $newQuery->send();
+
+        try {
+            $res = $newQuery->send();
+        } catch (MassAssignmentException $e) {
+            return null;
+        }
 
         $className = $class->className;
 
