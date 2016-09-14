@@ -108,17 +108,6 @@ class Builder
 
         $link = $this->url . $this->getLink();
 
-        if(\Config::get('app.debug')) {
-            File::append(app_path()."/log/RestORM" . date('Y-m-d') . ".log",
-                $link . "\n\n== == == == == == == == == == == == == \n\n");
-        }
-
-        if(\Config::get('app.debug')) {
-            File::append(app_path()."/log/RestORM" . date('Y-m-d') . ".log",
-                json_encode($this->data, JSON_UNESCAPED_UNICODE) .
-                "\n\n== == == == == == == == == == == == == \n\n");
-        }
-
         if ( $this->json ) {
             $result = $cli->newJsonRequest($this->method, $link, $this->data);
         } else {
