@@ -7,6 +7,9 @@ namespace Sberned\RestORM;
 
 use anlutro\cURL\cURL;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
+use ArrayAccess;
+use JsonSerializable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -19,7 +22,7 @@ use stdClass;
  * Class Model
  * @package Sberned\RestORM
  */
-abstract class Model
+abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializable
 {
     /**
      * The model's attributes.
@@ -86,7 +89,7 @@ abstract class Model
     /**
      * @var array
      */
-    protected static $_values = array();
+    protected $_values = array();
 
     /**
      * Model constructor.
@@ -118,7 +121,7 @@ abstract class Model
             $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink() . '/' . $this->attributes['id'], 'PATCH', true, $this->newAttributes);
             $res = $newQuery->send();
             $className = $this->className;
-            $data = self::convertToObject($res->$className);
+            $data = $this->convertToObject($res->$className);
 
             if(!empty($data)) {
                 foreach ($data as $key => $val) {
@@ -140,7 +143,7 @@ abstract class Model
             $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'POST', true, $this->attributes);
             $res = $newQuery->send();
             $className = $this->className;
-            $data = self::convertToObject($res->$className);
+            $data = $this->convertToObject($res->$className);
 
             if(!empty($data)) {
                 foreach ($data as $key => $val) {
@@ -159,16 +162,15 @@ abstract class Model
     public function first(array $columns = [])
     {
         if(!empty($columns)) {
-            self::setSelect($columns);
+            $this->setSelect($columns);
         }
 
-        $class = self::getCallClass();
-        $className = $class->className;
-        $aliasList = $class->alias_list;
+        $className = $this->className;
+        $aliasList = $this->alias_list;
 
         $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'get', true, []);
         $newQuery->limit(1, 1);
-        $newQuery->setValues(self::$_values);
+        $newQuery->setValues($this->_values);
         $res = $newQuery->send();
 
         if (isset($res->$className)) {
@@ -181,11 +183,12 @@ abstract class Model
             $data = array_first($res->$dataObj);
             if(!empty($data)) {
                 foreach ($data as $key => $val) {
-                    $class->setAttribute($key, $val);
+                    $this->setAttribute($key, $val);
                 }
             }
-            $class->exist = true;
-            return $class;
+            $this->exist = true;
+
+            return $this;
         } else {
             return null;
         }
@@ -198,15 +201,15 @@ abstract class Model
     public function get(array $columns = [])
     {
         if(!empty($columns)) {
-            self::setSelect($columns);
+            $this->setSelect($columns);
         }
 
         $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'get', true, []);
-        $newQuery->setValues(self::$_values);
+        $newQuery->setValues($this->_values);
         $res = $newQuery->send();
         $className = $this->url;
 
-        return self::convertToObject($res->$className);
+        return collect($res->$className);
     }
 
     /**
@@ -216,30 +219,29 @@ abstract class Model
     public function all(array $columns = [])
     {
         if(!empty($columns)) {
-            self::setSelect($columns);
+            $this->setSelect($columns);
         }
 
         $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'get', true, []);
-        $newQuery->setValues(self::$_values);
+        $newQuery->setValues($this->_values);
         $res = $newQuery->send();
         $className = $this->url;
 
-        return self::convertToObject($res->$className);
+        return collect($res->$className);
     }
 
     /**
      * @param int $id
      * @return mixed
      */
-    public static function find(int $id)
+    public function findOne(int $id)
     {
         if(!empty($columns)) {
-            self::setSelect($columns);
+            $this->setSelect($columns);
         }
-        $class = self::getCallClass();
 
-        $newQuery = new Builder($class->getClassName(), $class->getUrl(), $class->getLink() . '/' . $id, 'get', true, []);
-        $newQuery->setValues(self::$_values);
+        $newQuery = new Builder($this->getClassName(), $this->getUrl(), $this->getLink() . '/' . $id, 'get', true, []);
+        $newQuery->setValues($this->_values);
 
         try {
             $res = $newQuery->send();
@@ -247,27 +249,41 @@ abstract class Model
             return null;
         }
 
-        $className = $class->className;
+        $className = $this->className;
 
         $data =  $res->$className;
         if(!empty($data)) {
             foreach ($data as $key => $val) {
-                $class->setAttribute($key, $val);
+                $this->setAttribute($key, $val);
             }
         }
-        $class->exist = true;
-        return $class;
+        $this->exist = true;
+        return $this;
+    }
+
+    public function paginate($limit, $page)
+    {
+        $this->limit($limit, $page);
+        $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'get', true, []);
+        $newQuery->setValues($this->_values);
+        $res = $newQuery->send();
+        $className = $this->url;
+
+        return [
+            'data' => collect($res->$className),
+            'meta' => $this->convertToObject($res->meta)
+        ];
     }
 
     /**
      * @param array $select
      * @return mixed
      */
-    public static function select(array $select)
+    public function addSelect(array $select)
     {
-        self::$_values['Select'] = $select;
+        $this->_values['Select'] = $select;
 
-        return self::getCallClass();
+        return $this;
     }
 
     /**
@@ -278,7 +294,7 @@ abstract class Model
      * @param string $boolean
      * @return mixed
      */
-    public static function where($column, $operator = '=', $value = null, $fulltext_search = false,  $boolean = 'and')
+    public function addWhere($column, $operator = '=', $value = null, $fulltext_search = false,  $boolean = 'and')
     {
         if ($fulltext_search) {
             $prefix = '@';
@@ -288,7 +304,7 @@ abstract class Model
 
         switch ($operator) {
             case '==' || '=':
-                self::setWhere($column, $value, $prefix);
+                $this->setWhere($column, $value, $prefix);
                 break;
             case '<>' || '!=':
 
@@ -307,7 +323,14 @@ abstract class Model
                 break;
         }
 
-        return self::getCallClass();
+        return $this;
+    }
+
+    public function orderBy($column, $order)
+    {
+        $this->_values['Orderby'][] = strtolower($order) == 'asc' ? $column : '-' . $column;
+
+        return $this;
     }
 
     /**
@@ -315,11 +338,11 @@ abstract class Model
      * @param int $page
      * @return mixed
      */
-    public static function limit($per_page = 15, $page = 1)
+    public function limit($per_page = 15, $page = 1)
     {
-        self::$_values['Limit'] = ['per_page' => $per_page, 'page' => $page];
+        $this->_values['Limit'] = ['per_page' => $per_page, 'page' => $page];
 
-        return self::getCallClass();
+        return $this;
     }
 
 
@@ -327,17 +350,17 @@ abstract class Model
      * @param $array
      * @return mixed
      */
-    public static function with($array)
+    public function addWith($array)
     {
         if(is_array($array)){
             foreach ($array as $arr) {
-                self::$_values['With'][] =  $arr;
+                $this->_values['With'][] =  $arr;
             }
         } else {
-            self::$_values['With'][] =  $array;
+            $this->_values['With'][] =  $array;
         }
 
-        return self::getCallClass();
+        return $this;
     }
 
     /**
@@ -380,9 +403,9 @@ abstract class Model
     /**
      * @param array $query
      */
-    public static function setSelect(array $query)
+    public function setSelect(array $query)
     {
-        self::$_values['Select'] = $query;
+        $this->_values['Select'] = $query;
     }
 
     /**
@@ -390,9 +413,9 @@ abstract class Model
      * @param $value
      * @param $operator
      */
-    private static function setWhere($column, $value, $operator)
+    private function setWhere($column, $value, $operator)
     {
-        self::$_values['Where'][] = ['column' => $column, 'search' => $value, 'operator' => $operator];
+        $this->_values['Where'][] = ['column' => $column, 'search' => $value, 'operator' => $operator];
 
     }
 
@@ -428,11 +451,11 @@ abstract class Model
      * @param $array
      * @return stdClass
      */
-    public static function convertToObject($array) {
+    public function convertToObject($array) {
         $object = new stdClass();
         foreach ($array as $key => $value) {
             if (is_array($value) && !empty($value)) {
-                $value = self::convertToObject($value);
+                $value = $this->convertToObject($value);
             }
             $object->$key = $value;
         }
@@ -472,5 +495,97 @@ abstract class Model
         $this->setAttribute($key, $value);
         $this->setNewAttribute($key, $value);
 
+    }
+
+    /**
+     * Convert the model instance to JSON.
+     *
+     * @param  int  $options
+     * @return string
+     */
+    public function toJson($options = 0)
+    {
+        return json_encode($this->jsonSerialize(), $options);
+    }
+
+    /**
+     * Convert the object into something JSON serializable.
+     *
+     * @return array
+     */
+    public function jsonSerialize()
+    {
+        return $this->toArray();
+    }
+
+    public function toArray()
+    {
+        return $this->attributes;
+    }
+
+    /**
+     * Determine if the given attribute exists.
+     *
+     * @param  mixed  $offset
+     * @return bool
+     */
+    public function offsetExists($offset)
+    {
+        return isset($this->$offset);
+    }
+
+    /**
+     * Get the value for a given offset.
+     *
+     * @param  mixed  $offset
+     * @return mixed
+     */
+    public function offsetGet($offset)
+    {
+        return $this->$offset;
+    }
+
+    /**
+     * Set the value for a given offset.
+     *
+     * @param  mixed  $offset
+     * @param  mixed  $value
+     * @return void
+     */
+    public function offsetSet($offset, $value)
+    {
+        $this->$offset = $value;
+    }
+
+    /**
+     * Unset the value for a given offset.
+     *
+     * @param  mixed  $offset
+     * @return void
+     */
+    public function offsetUnset($offset)
+    {
+        unset($this->$offset);
+    }
+
+    public function __call($name, $arguments)
+    {
+        if ($name == 'find') {
+            return call_user_func_array([$this, 'findOne'], $arguments);
+        }
+
+        $method = 'add' . ucfirst($name);
+        if (!method_exists($this, $method)) {
+            throw new \Exception('Method ' . $method . ' does not exists');
+        }
+
+        return call_user_func_array([$this, $method], $arguments);
+    }
+
+    public static function __callStatic($name, $arguments)
+    {
+        $instance = new static;
+
+        return call_user_func_array([$instance, $name], $arguments);
     }
 }
