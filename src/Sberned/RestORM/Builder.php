@@ -120,7 +120,7 @@ class Builder
         $result->setOption(CURLOPT_SSL_VERIFYPEER, false);
         $res = $result->send();
         if($res->statusCode < 400) {
-            $this->result = Model::convertToObject(json_decode($res->body));
+            $this->result = json_decode($res->body);
             if($this->result->success) {
                 return $this->result->data;
             }
@@ -199,10 +199,10 @@ class Builder
         $res = "";
         if(!empty($this->includes)) {
             foreach ($this->includes as $key => $field) {
-                $res .= "includes[]={$field}";
+                $res .= "include[]={$field}";
 
                 if (isset($this->includes[$key + 1])) {
-                    $res .= ',';
+                    $res .= '&';
                 }
             }
             $res .= '&';
@@ -259,9 +259,9 @@ class Builder
     /**
      * @param $value
      */
-    public function setOrderby($value)
+    public function setOrderby(array $value)
     {
-        $this->ordering[] = $value;
+        $this->ordering = $value;
     }
 
     /**
