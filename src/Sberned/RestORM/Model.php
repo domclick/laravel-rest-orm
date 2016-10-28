@@ -104,11 +104,11 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      */
     public function save()
     {
-      if($this->exist) {
-          return $this->updateThis();
-      } else {
-          return $this->insertThis();
-      }
+        if($this->exist) {
+            return $this->updateThis();
+        } else {
+            return $this->insertThis();
+        }
     }
 
     /**
@@ -322,6 +322,18 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
                 break;
         }
+
+        return $this;
+    }
+
+    public function addWhereIn($column, $values)
+    {
+        $values = array_filter($values, function($value) {
+            return $value > 0;
+        });
+        $values = array_unique($values);
+
+        $this->setWhere($column, implode(',', $values), '');
 
         return $this;
     }

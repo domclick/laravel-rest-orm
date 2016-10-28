@@ -144,7 +144,7 @@ class Builder
     public function getLink(): string
     {
         return $this->link . "?" . $this->getFields() . $this->getIncludes()  . $this->getOrdering()  . $this->pagination .
-            '&' . $this->getWhereis();
+                '&' . $this->getWhereis();
     }
 
     /**
@@ -176,15 +176,19 @@ class Builder
     {
         $res ='';
         if(!empty($this->fields)) {
-            $res = "fields[{$this->className}]=";
-            foreach ($this->fields as $key => $field) {
-                $res .= "{$field}";
-
-                if (isset($this->fields[$key + 1])) {
-                    $res .= ',';
+            $select = [];
+            foreach ($this->fields as $field) {
+                $fieldParts = explode('.', $field);
+                if (count($fieldParts) > 1) {
+                    $select[$fieldParts[0]][] = $fieldParts[1];
+                } else {
+                    $select[$this->className][] = $fieldParts[0];
                 }
             }
-            $res .= '&';
+
+            foreach ($select as $class => $fields) {
+                $res .= 'fields[' . $class . ']=' . implode(',', $fields) . '&';
+            }
 
         }
 
