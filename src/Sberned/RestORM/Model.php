@@ -9,6 +9,7 @@ use anlutro\cURL\cURL;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use ArrayAccess;
+use Illuminate\Support\Collection;
 use JsonSerializable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
@@ -142,7 +143,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
             $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'POST', true, $this->attributes);
             $res = $newQuery->send();
-            $className = $this->className;
+            $className = $this->alias_list;
             $data = $this->convertToObject($res->$className);
 
             if(!empty($data)) {
@@ -207,7 +208,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'get', true, []);
         $newQuery->setValues($this->_values);
         $res = $newQuery->send();
-        $className = $this->url;
+        $className = $this->alias_list;
 
         return collect($res->$className);
     }
@@ -225,7 +226,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'get', true, []);
         $newQuery->setValues($this->_values);
         $res = $newQuery->send();
-        $className = $this->url;
+        $className = $this->alias_list;
 
         return collect($res->$className);
     }
@@ -279,8 +280,12 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      * @param array $select
      * @return mixed
      */
-    public function addSelect(array $select)
+    public function addSelect($select)
     {
+        if (!is_array($select)) {
+            $select = func_get_args();
+        }
+
         $this->_values['Select'] = $select;
 
         return $this;
@@ -294,20 +299,20 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      * @param string $boolean
      * @return mixed
      */
-    public function addWhere($column, $operator = '=', $value = null, $fulltext_search = false,  $boolean = 'and')
+    public function addWhere($column, $operator = '=', $value = null)
     {
-        if ($fulltext_search) {
-            $prefix = '@';
-        } else {
-            $prefix = '';
+        if (count(func_get_args()) == 2) {
+            $value = $operator;
+            $operator = '=';
         }
 
         switch ($operator) {
-            case '==' || '=':
-                $this->setWhere($column, $value, $prefix);
+            case '=':
+                $this->setWhere($column, $value, '');
                 break;
-            case '<>' || '!=':
-
+            case '<>':
+            case '!=':
+                $this->setWhere($column, $value, '^');
                 break;
             case '<':
 
@@ -321,6 +326,9 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
             case '>=':
 
                 break;
+            case 'like':
+                $this->setWhere($column, $value . ':*', '@');
+                break;
         }
 
         return $this;
@@ -328,6 +336,10 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
     public function addWhereIn($column, $values)
     {
+        if ($values instanceof Collection) {
+            $values = $values->all();
+        }
+
         $values = array_filter($values, function($value) {
             return $value > 0;
         });
@@ -364,6 +376,10 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      */
     public function addWith($array)
     {
+        if (!is_array($array)) {
+            $array = func_get_args();
+        }
+
         if(is_array($array)){
             foreach ($array as $arr) {
                 $this->_values['With'][] =  $arr;
@@ -373,6 +389,11 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
         }
 
         return $this;
+    }
+
+    public function addSearch($query)
+    {
+        return $this->addWhere('search', $query . ':*');
     }
 
     /**
@@ -415,8 +436,12 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     /**
      * @param array $query
      */
-    public function setSelect(array $query)
+    public function setSelect($query)
     {
+        if (!is_array($query)) {
+            $query = func_get_args();
+        }
+
         $this->_values['Select'] = $query;
     }
 
@@ -584,6 +609,10 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     {
         if ($name == 'find') {
             return call_user_func_array([$this, 'findOne'], $arguments);
+        }
+
+        if ($name == 'findMany') {
+            return call_user_func_array([$this, 'findMany'], $arguments);
         }
 
         $method = 'add' . ucfirst($name);

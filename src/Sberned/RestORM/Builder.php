@@ -144,7 +144,7 @@ class Builder
     public function getLink(): string
     {
         return $this->link . "?" . $this->getFields() . $this->getIncludes()  . $this->getOrdering()  . $this->pagination .
-                '&' . $this->getWhereis();
+        '&' . $this->getWhereis();
     }
 
     /**
