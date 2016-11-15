@@ -143,7 +143,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
             $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink(), 'POST', true, $this->attributes);
             $res = $newQuery->send();
-            $className = $this->alias_list;
+            $className = $this->className;
             $data = $this->convertToObject($res->$className);
 
             if(!empty($data)) {
