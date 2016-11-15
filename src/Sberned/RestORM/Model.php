@@ -315,16 +315,16 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
                 $this->setWhere($column, $value, '^');
                 break;
             case '<':
-
+                $this->setWhere($column . '__lt', $value, '');
                 break;
             case '<=':
-
+                $this->setWhere($column . '__lte', $value, '');
                 break;
             case '>':
-
+                $this->setWhere($column . '__gt', $value, '');
                 break;
             case '>=':
-
+                $this->setWhere($column . '__gte', $value, '');
                 break;
             case 'like':
                 $this->setWhere($column, $value . ':*', '@');
