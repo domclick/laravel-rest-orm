@@ -103,6 +103,14 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
     /**
      * @return bool
      */
+    public function delete()
+    {
+        return $this->deleteThis();
+    }
+
+    /**
+     * @return bool
+     */
     public function save()
     {
         if($this->exist) {
@@ -154,6 +162,22 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
             }
         }
         return false;
+    }
+
+    /**
+     * @return bool
+     */
+    private function deleteThis()
+    {
+        $objects = $this->all();
+        foreach ($objects as $object) {
+            if (property_exists($object, "id")) {
+                $newQuery = new Builder($this->className, $this->getUrl(), $this->getLink() . '/' . $object->id,
+                    'DELETE', true, [], false);
+                $res = $newQuery->send();
+            }
+        }
+        return true;
     }
 
     /**

@@ -88,8 +88,10 @@ class Builder
      * @param string $method
      * @param bool $json
      * @param array $data
+     * @param bool $expect_result
      */
-    public function __construct(string $className, string $url, string $link, string $method = 'get', bool $json, array $data = [])
+    public function __construct(string $className, string $url, string $link, string $method = 'get', bool $json,
+                                array $data = [], bool $expect_result = true)
     {
         $this->className = $className;
         $this->url = $url;
@@ -97,6 +99,7 @@ class Builder
         $this->method = $method;
         $this->json = $json;
         $this->data = $data;
+        $this->expect_result = $expect_result;
     }
 
     /**
@@ -120,9 +123,13 @@ class Builder
         $result->setOption(CURLOPT_SSL_VERIFYPEER, false);
         $res = $result->send();
         if($res->statusCode < 400) {
-            $this->result = json_decode($res->body);
-            if($this->result->success) {
-                return $this->result->data;
+            if ($this->expect_result) {
+                $this->result = json_decode($res->body);
+                if($this->result->success) {
+                    return $this->result->data;
+                }
+            } else {
+                return $this->result;
             }
         } else {
             throw (new MassAssignmentException)->setError($this->url, $res->body);
