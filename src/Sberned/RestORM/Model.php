@@ -325,6 +325,7 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      */
     public function addWhere($column, $operator = '=', $value = null)
     {
+        $value = urlencode($value);
         if (count(func_get_args()) == 2) {
             $value = $operator;
             $operator = '=';
