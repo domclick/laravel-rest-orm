@@ -87,6 +87,8 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
      */
     private $className = '';
 
+    public $alias_one = null;
+
     /**
      * @var array
      */
@@ -276,7 +278,8 @@ abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializab
 
         $className = $this->className;
 
-        $data =  $res->$className;
+        $data = $this->alias_one ? $res->{$this->alias_one} : $res->$className;
+
         if(!empty($data)) {
             foreach ($data as $key => $val) {
                 $this->setAttribute($key, $val);
